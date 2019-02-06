@@ -11,6 +11,8 @@ use yii\base\InvalidCallException;
  */
 abstract class AbstractActivity extends BaseObject implements Activity
 {
+    public $tag = 'default';
+
     /**
      * @var null|Activity родительская запись лога
      */
