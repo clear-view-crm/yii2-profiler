@@ -147,9 +147,16 @@ class Component extends \yii\base\Component
         }
     }
 
-    public function rollback()
+    public function commit($message = null)
     {
+        $parent = $this->_currentActivity->commit($message);
+        $this->_currentActivity = &$parent;
+    }
 
+    public function rollback($message = null)
+    {
+        $parent = $this->_currentActivity->rollback($message);
+        $this->_currentActivity = &$parent;
     }
 
     public function destroy()
@@ -165,6 +172,12 @@ class Component extends \yii\base\Component
     public function getCurrentTime()
     {
         return microtime(true);
+    }
+
+    public function save()
+    {
+        //@todo сохранить дерево
+        $this->destroy();
     }
 
     /**

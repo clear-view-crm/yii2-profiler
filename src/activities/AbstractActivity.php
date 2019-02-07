@@ -12,7 +12,8 @@ use yii\base\InvalidCallException;
 abstract class AbstractActivity extends BaseObject implements Activity
 {
     public $tag = 'default';
-    public $comment = '';
+    public $comment = null;
+    public $message = null;
 
     /**
      * @var null|Activity родительская запись лога
@@ -41,15 +42,12 @@ abstract class AbstractActivity extends BaseObject implements Activity
      */
     protected $_initDone = false;
     /**
-     * @var bool флаг завершения операции.
-     *     если установлен в true, доступными для записи остаются тоьлко дополнительные данные в _additionalData
-     */
-    protected $_commitDone = false;
-    /**
      * Количество вложенных записей в следующем уровне
      * @var int
      */
     protected $_childrenCount = 0;
+
+    protected $_commitStatus = self::STATUS_NONE;
 
     /**
      * {@inheritdoc}
@@ -58,9 +56,14 @@ abstract class AbstractActivity extends BaseObject implements Activity
     {
         if (array_key_exists($name, $this->_additionalData)) {
             $this->_additionalData[$name] = $value;
-        } elseif (!$this->_commitDone) {
+        } elseif (!$this->commitDone) {
             parent::__set($name, $value);
         }
+    }
+
+    public function getCommitDone()
+    {
+        return ($this->_commitStatus !== self::STATUS_NONE);
     }
 
     /**
@@ -125,14 +128,34 @@ abstract class AbstractActivity extends BaseObject implements Activity
     /**
      * {@inheritdoc}
      */
-    public function commit()
+    public function commit($message = null)
     {
         if (!empty($this->_children)) foreach ($this->_children as $activity) {
-            $activity->commit();
+            $activity->commit($message);
         }
-        if (!$this->_commitDone) {
+        if (!$this->commitDone) {
+            $this->message = $message;
             $this->_activityEndTime = microtime(true);
-            $this->_commitDone = true;
+            $this->_commitStatus = self::STATUS_COMMIT;
+        }
+        if ($this->_parent) {
+            return $this->_parent;
+        }
+        return null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function rollback($message = null)
+    {
+        if (!empty($this->_children)) foreach ($this->_children as $activity) {
+            $activity->rollback($message);
+        }
+        if (!$this->commitDone) {
+            $this->message = $message;
+            $this->_activityEndTime = microtime(true);
+            $this->_commitStatus = self::STATUS_ROLLBACK;
         }
         if ($this->_parent) {
             return $this->_parent;

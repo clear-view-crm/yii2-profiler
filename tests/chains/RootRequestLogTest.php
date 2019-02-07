@@ -34,9 +34,21 @@ class RootRequestLogTest extends \PHPUnit\Framework\TestCase
 
     public function testRootAfterAppend()
     {
-        $ca = $this->_profiler->append();
-        print_r($ca);
-        print_r($this->_profiler->root);
+        $this->_profiler->append();
         $this->assertFalse($this->_profiler->isRoot);
+    }
+
+    public function testRootAfterCommit()
+    {
+        $this->_profiler->append();
+        $this->_profiler->commit();
+        $this->assertTrue($this->_profiler->isRoot);
+    }
+
+    public function testRootAfterRollback()
+    {
+        $this->_profiler->append();
+        $this->_profiler->rollback('test rollback message');
+        $this->assertTrue($this->_profiler->isRoot);
     }
 }
