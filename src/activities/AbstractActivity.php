@@ -12,6 +12,7 @@ use yii\base\InvalidCallException;
 abstract class AbstractActivity extends BaseObject implements Activity
 {
     public $tag = 'default';
+    public $comment = '';
 
     /**
      * @var null|Activity родительская запись лога
@@ -44,6 +45,11 @@ abstract class AbstractActivity extends BaseObject implements Activity
      *     если установлен в true, доступными для записи остаются тоьлко дополнительные данные в _additionalData
      */
     protected $_commitDone = false;
+    /**
+     * Количество вложенных записей в следующем уровне
+     * @var int
+     */
+    protected $_childrenCount = 0;
 
     /**
      * {@inheritdoc}
@@ -106,7 +112,18 @@ abstract class AbstractActivity extends BaseObject implements Activity
     }
 
     /**
-     * Фиксирует время выполнения действия
+     * {@inheritdoc}
+     */
+    public function appendChild(Activity $activity)
+    {
+        ++ $this->_childrenCount;
+        $activity->parent = $this;
+        $this->_children[$this->_childrenCount] = $activity;
+        return $this->_children[$this->_childrenCount];
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function commit()
     {
@@ -117,5 +134,9 @@ abstract class AbstractActivity extends BaseObject implements Activity
             $this->_activityEndTime = microtime(true);
             $this->_commitDone = true;
         }
+        if ($this->_parent) {
+            return $this->_parent;
+        }
+        return null;
     }
 }
