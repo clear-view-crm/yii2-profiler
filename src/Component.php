@@ -44,6 +44,10 @@ class Component extends \yii\base\Component
      *    временем начала выполнения будет считаться момент инициализации компонента
      */
     public $scriptBeginTimeConst = null;
+    /**
+     * @var string имя класса для трассировки логов
+     */
+    public $logTraceClass = Trace::class;
 
     /**
      * @var float время начала выполнения скрипта
@@ -133,7 +137,7 @@ class Component extends \yii\base\Component
      * @return Activity|null
      * @throws \yii\base\InvalidConfigException
      */
-    public function append($comment = '', $tag = 'default')
+    public function append($tag = 'default', $comment = '')
     {
         $appended = $this->current->appendChild($this->_createActivity($tag, ['comment' => $comment]));
         $this->_currentActivity = &$appended;
@@ -188,11 +192,20 @@ class Component extends \yii\base\Component
      */
     private function _createActivity($tag = 'default', $config = [])
     {
+        $config['tag'] = $tag;
         if (!array_key_exists($tag, $this->_activities)) $tag = 'default';
         if (isset($this->_activities[$tag])) {
             $config = array_merge($this->_activities[$tag], $config);
             return \Yii::createObject($config);
         }
         return null;
+    }
+
+    public function trace()
+    {
+        return \Yii::createObject([
+            'class' => $this->logTraceClass,
+            'log' => $this->root->trace()
+        ]);
     }
 }

@@ -22,7 +22,7 @@ abstract class AbstractActivity extends BaseObject implements Activity
     /**
      * @var Activity[] вложенные (дочерние) записи лога
      */
-    protected $_children = null;
+    protected $_children = [];
     /**
      * @var array дополнительные данные, которые может получать запись
      */
@@ -161,5 +161,55 @@ abstract class AbstractActivity extends BaseObject implements Activity
             return $this->_parent;
         }
         return null;
+    }
+
+    public function trace($level = 0)
+    {
+        $trace = $this->_traceInternal($level);
+        if ($this->_children) {
+            $trace['children_self'] = count($this->_children);
+            $trace['children_total'] = count($this->_children);
+
+            $trace['time_internal'] = 0;
+            foreach ($this->_children as $activity) {
+                /** @var static $activity */
+                $sub = $activity->trace($level + 1);
+                $trace['time_internal'] += $sub['time_total'];
+                $trace['children_total'] += $sub['children_total'];
+                $trace['children_nodes'][] = $sub;
+            }
+            $trace['time_clear'] = $trace['time_total'] - $trace['time_internal'];
+        } else {
+            $trace['time_internal'] = 0;
+            $trace['time_clear'] = $trace['time_total'];
+        }
+        return $trace;
+    }
+
+    protected function _traceInternal($level = 0)
+    {
+        $childrenCount = count($this->_children);
+        $totalTime = $this->_activityEndTime - $this->_activityBeginTime;
+
+        return [
+            'level'          => $level,
+            'tag'            => $this->tag,
+            'comment'        => $this->comment,
+            'status'         => $this->_commitStatus,
+            'message'        => $this->message,
+            'data'           => $this->_additionalData,
+
+            'time_start'     => $this->_activityBeginTime,
+            'time_end'       => $this->_activityEndTime,
+
+            'time_total'     => $totalTime,
+            'time_clear'     => $totalTime,
+            'time_internal'  => 0,
+
+            'children_self'  => $childrenCount,
+            'children_total' => $childrenCount,
+
+            'children_nodes' => []
+        ];
     }
 }
